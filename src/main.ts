@@ -191,20 +191,23 @@ async function getActors(ids: number[]): Promise<(Actor | null)[]> {
   };
 };
 
-function generateId(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+function getRandomNum(min: number, max: number): number {
+  if (min > max) {
+    throw new Error("Il valore minimo deve essere minore del valore massimo.");
+  };
+  return Math.floor(Math.random() * (max - min + 1) + min);
+};
 
 function createActress(data: Omit<Actress, "id">): Actress {
   return {
-    id: generateId(1, 100),
+    id: getRandomNum(1, 100),
     ...data
   };
 };
 
 function createActor(data: Omit<Actor, "id">): Actor {
   return {
-    id: generateId(1, 100),
+    id: getRandomNum(1, 100),
     ...data
   };
 };
@@ -220,3 +223,23 @@ function updateActor(actor: Actor, updates: Partial<EditableActor>): Actor {
   return {...actor, ...updates};
 };
 
+async function createRandomCouple(): Promise<[Actress, Actor] | null> {
+  const actressesArray = getAllActresses();
+  const actorsArray = getAllActors();
+  try {
+    const [actresses, actors] = await Promise.all([actressesArray, actorsArray]);
+    if(actresses.length === 0 || actors.length === 0) {
+      throw new Error(`Uno dei due array è vuoto! Attrici: ${actresses.length} Attori: ${actors.length}`);
+    };
+    const randomActressNum = getRandomNum(0, actresses.length - 1);
+    const randomActorNum = getRandomNum(0, actors.length - 1);
+    return [actresses[randomActressNum], actors[randomActorNum]];
+  } catch(error) {
+    if (error instanceof Error) {
+      console.error("Impossibile recuperare le attrici", error.message);
+    } else {
+      console.error('Errore sconosciuto');
+    }
+    return null;
+  };
+};
