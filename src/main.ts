@@ -7,18 +7,20 @@ type Person = {
   image: string;
 };
 
-type nationality = 'American' | 'British' | 'Australian' | 'Israeli-American' | 'South African' | 'French' | 'Indian' | 'Israeli' | 'Spanish' | 'South Korean' | 'Chinese';
+type ActressNationality = 'American' | 'British' | 'Australian' | 'Israeli-American' | 'South African' | 'French' | 'Indian' | 'Israeli' | 'Spanish' | 'South Korean' | 'Chinese';
 
 type Actress = Person & {
   most_famous_movies: [string | string | string];
   awards: string;
-  nationality: nationality;
+  nationality: ActressNationality;
 };
+
+type ActorNationality = ActressNationality | 'Scottish' | 'New Zealand' | 'Hong Kong' | 'German' | 'Canadian' | 'Irish';
 
 type Actor = Person & {
   known_for: [string | string | string];
   awards: [string] | [string, string];
-  nationality: nationality & ['Scottish', 'New Zealand', 'Hong Kong', 'German', 'Canadian', 'Irish'];
+  nationality: ActorNationality;
 }
 
 function isActress(data: unknown): data is Actress {
@@ -63,9 +65,9 @@ function isActor(data: unknown): data is Actor {
     Array.isArray(data.known_for) &&
     data.known_for.length === 3 &&
     data.known_for.every(m => typeof m === "string") &&
-    "awards" in data && 
+    "awards" in data &&
     Array.isArray(data.awards) &&
-    data.awards.length <= 2 &&
+    (data.awards.length === 1 || data.awards.length === 2) &&
     data.awards.every(m => typeof m === "string") &&
     "nationality" in data &&
     typeof data.nationality === "string" &&
@@ -100,16 +102,16 @@ async function getActress(id: number): Promise<Actress | null> {
 async function getActor(id: number): Promise<Actor | null> {
   try {
     const res = await fetch(`https://boolean-spec-frontend.vercel.app/freetestapi/actors/:${id}`);
-    if(!res.ok) {
+    if (!res.ok) {
       throw new Error(`Errore HTTP ${res.status}: ${res.statusText}`);
     };
     const data: unknown = res.json();
-    if(!isActor(data)) {
+    if (!isActor(data)) {
       throw new Error('Formato dati non valido!');
     };
     return data;
   } catch (error) {
-    if(error instanceof Error) {
+    if (error instanceof Error) {
       console.error("Impossibile recuperare l'attore", error.message);
     } else {
       console.error('Errore sconosciuto');
@@ -148,13 +150,13 @@ async function getAllActors(): Promise<Actor[]> {
       throw new Error(`Errore HTTP ${res.status}: ${res.statusText}`);
     };
     const data: unknown = res.json();
-    if(!Array.isArray(data)) {
+    if (!Array.isArray(data)) {
       throw new Error('Formato dati non valido!');
     };
     const validActors: Actor[] = data.filter(a => isActor(a));
     return validActors;
   } catch (error) {
-    if(error instanceof Error) {
+    if (error instanceof Error) {
       console.error("Impossibile recuperare gli attori", error.message);
     } else {
       console.error('Errore sconosciuto');
@@ -216,30 +218,24 @@ type EditableActress = Omit<Actress, "id" | "name">;
 type EditableActor = Omit<Actor, "id" | "name">;
 
 function updateActress(actress: Actress, updates: Partial<EditableActress>): Actress {
-  return {...actress, ...updates};
+  return { ...actress, ...updates };
 };
 
 function updateActor(actor: Actor, updates: Partial<EditableActor>): Actor {
-  return {...actor, ...updates};
+  return { ...actor, ...updates };
 };
 
 async function createRandomCouple(): Promise<[Actress, Actor] | null> {
-  const actressesArray = getAllActresses();
-  const actorsArray = getAllActors();
-  try {
-    const [actresses, actors] = await Promise.all([actressesArray, actorsArray]);
-    if(actresses.length === 0 || actors.length === 0) {
-      throw new Error(`Uno dei due array è vuoto! Attrici: ${actresses.length} Attori: ${actors.length}`);
-    };
-    const randomActressNum = getRandomNum(0, actresses.length - 1);
-    const randomActorNum = getRandomNum(0, actors.length - 1);
-    return [actresses[randomActressNum], actors[randomActorNum]];
-  } catch(error) {
-    if (error instanceof Error) {
-      console.error("Impossibile recuperare le attrici", error.message);
-    } else {
-      console.error('Errore sconosciuto');
-    }
+  const actressesPromise = getAllActresses();
+  const actorsPromise = getAllActors();
+  const [actresses, actors] = await Promise.all([actressesPromise, actorsPromise]);
+
+  if (actresses.length === 0 || actors.length === 0) {
+    alert(`Uno dei due array è vuoto! Attrici: ${actresses.length} Attori: ${actors.length}`);
     return null;
   };
+  
+  const randomActressNum = getRandomNum(0, actresses.length - 1);
+  const randomActorNum = getRandomNum(0, actors.length - 1);
+  return [actresses[randomActressNum], actors[randomActorNum]];
 };
